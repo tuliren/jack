@@ -47,11 +47,15 @@ public class TestJooq extends TestCase {
   public void testRead() throws Exception {
     Result<UsersRecord> usersRecords = create.selectFrom(USERS).fetch();
 
-    for (UsersRecord usersRecord : usersRecords) {
-      Integer id = usersRecord.getId();
-      String handle = usersRecord.getHandle();
-      String bio = usersRecord.getBio();
+    for (UsersRecord user : usersRecords) {
+      Integer id = user.getId();
+      String handle = user.getHandle();
+      String bio = user.getBio();
       System.out.printf("User %d, Handle %s, Bio %s\n", id, handle, bio);
+      Result<PostsRecord> userPosts = user.fetchChildren(Keys.POSTS_USER_ID_FK);
+      for (PostsRecord post : userPosts) {
+        System.out.printf("  Post %d: %s\n", post.getId(), post.getTitle());
+      }
     }
   }
 
