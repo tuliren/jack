@@ -1,3 +1,4 @@
+# encoding: UTF-8
 # This file is auto-generated from the current state of the database. Instead
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
@@ -10,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20110324000133) do
+ActiveRecord::Schema.define(:version => 20141030213456) do
 
   create_table "comments", :force => true do |t|
     t.text     "content"
@@ -19,9 +20,14 @@ ActiveRecord::Schema.define(:version => 20110324000133) do
     t.datetime "created_at",                   :default => '1970-01-01 00:00:00', :null => false
   end
 
+  add_index "comments", ["commented_on_id"], :name => "comments_commented_on_id_fk"
+  add_index "comments", ["commenter_id"], :name => "comments_commenter_id_fk"
+
   create_table "images", :force => true do |t|
     t.integer "user_id"
   end
+
+  add_index "images", ["user_id"], :name => "images_user_id_fk"
 
   create_table "posts", :force => true do |t|
     t.string   "title"
@@ -29,6 +35,8 @@ ActiveRecord::Schema.define(:version => 20110324000133) do
     t.integer  "user_id"
     t.datetime "updated_at"
   end
+
+  add_index "posts", ["user_id"], :name => "posts_user_id_fk"
 
   create_table "users", :force => true do |t|
     t.string   "handle",                                                         :null => false
@@ -42,5 +50,12 @@ ActiveRecord::Schema.define(:version => 20110324000133) do
     t.decimal  "some_decimal",                   :precision => 20, :scale => 10
     t.boolean  "some_boolean"
   end
+
+  add_foreign_key "comments", "posts", name: "comments_commented_on_id_fk", column: "commented_on_id"
+  add_foreign_key "comments", "users", name: "comments_commenter_id_fk", column: "commenter_id"
+
+  add_foreign_key "images", "users", name: "images_user_id_fk"
+
+  add_foreign_key "posts", "users", name: "posts_user_id_fk"
 
 end
