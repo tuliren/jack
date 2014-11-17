@@ -52,11 +52,16 @@ public class TestJooq extends TestCase {
       String handle = user.getHandle();
       String bio = user.getBio();
       System.out.printf("User %d, Handle %s, Bio %s\n", id, handle, bio);
+
       Result<PostsRecord> userPosts = user.fetchChildren(Keys.POSTS_USER_ID_FK);
       for (PostsRecord post : userPosts) {
         System.out.printf("  Post %d: %s\n", post.getId(), post.getTitle());
       }
     }
+  }
+
+  public void testJoin() throws Exception {
+
   }
 
   public void testUpdate() throws Exception {
