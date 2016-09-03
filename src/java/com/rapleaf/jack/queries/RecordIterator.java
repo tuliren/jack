@@ -38,6 +38,9 @@ public class RecordIterator implements Iterator<Record>, AutoCloseable {
     this.queryStatistics = statistics;
   }
 
+  /**
+   *
+   */
   @Override
   public boolean hasNext() {
     if (!isNextConsumed) {
@@ -48,7 +51,10 @@ public class RecordIterator implements Iterator<Record>, AutoCloseable {
       boolean hasNext = resultSet.next();
       if (hasNext) {
         next = QueryFetcher.parseResultSet(resultSet, selectedColumns);
+      } else {
+        next = null;
       }
+      isNextConsumed = false;
       return hasNext;
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -57,6 +63,7 @@ public class RecordIterator implements Iterator<Record>, AutoCloseable {
 
   @Override
   public Record next() {
+    isNextConsumed = true;
     return next;
   }
 
