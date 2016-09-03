@@ -2,6 +2,7 @@ package com.rapleaf.jack.queries;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLRecoverableException;
 import java.util.Arrays;
@@ -214,6 +215,43 @@ public class GenericQuery {
         }
 
         return queryResults;
+      } catch (SQLRecoverableException e) {
+        LOG.error(e.toString());
+        if (++retryCount > MAX_CONNECTION_RETRIES) {
+          throw new IOException(e);
+        }
+      } catch (SQLException e) {
+        throw new IOException(e);
+      }
+    }
+  }
+
+  public RecordIterator fetchIterator() throws IOException {
+    int retryCount = 0;
+    final QueryStatistics.Measurer statTracker = new QueryStatistics.Measurer();
+    statTracker.recordQueryPrepStart();
+    PreparedStatement preparedStatement = getPreparedStatement();
+    statTracker.recordQueryPrepEnd();
+
+    while (true) {
+      try {
+        statTracker.recordAttempt();
+
+        statTracker.recordQueryExecStart();
+        ResultSet resultSet = preparedStatement.executeQuery();
+        final RecordIterator queryIterator = new RecordIterator(preparedStatement, selectedColumns, resultSet);
+        statTracker.recordQueryExecEnd();
+
+        final QueryStatistics statistics = statTracker.calculate();
+        queryIterator.addStatistics(statistics);
+
+        try {
+          postQueryAction.perform(statistics);
+        } catch (Exception ignoredException) {
+          LOG.error(String.format("Error occurred running post-query action %s", postQueryAction), ignoredException);
+        }
+
+        return queryIterator;
       } catch (SQLRecoverableException e) {
         LOG.error(e.toString());
         if (++retryCount > MAX_CONNECTION_RETRIES) {

@@ -47,7 +47,7 @@ public class QueryFetcher {
     }
   }
 
-  private static Record parseResultSet(ResultSet resultSet, Set<Column> selectedColumns) throws SQLException {
+  static Record parseResultSet(ResultSet resultSet, Set<Column> selectedColumns) throws SQLException {
     if (selectedColumns.isEmpty()) {
       return null;
     }
