@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -18,53 +19,51 @@ public class RecordIterator implements Iterator<Record>, AutoCloseable {
   private Set<Column> selectedColumns;
 
   private ResultSet resultSet;
-  private boolean isNextConsumed;
-  private Record next;
+  private boolean hasNext;
 
   private QueryStatistics queryStatistics;
 
   RecordIterator(PreparedStatement preparedStatement, Set<Column> selectedColumns, ResultSet resultSet) {
     this.preparedStatement = preparedStatement;
     this.selectedColumns = selectedColumns;
-
     this.resultSet = resultSet;
-    this.isNextConsumed = true;
-    this.next = null;
-
     this.queryStatistics = null;
+    updateHasNext();
   }
 
   void addStatistics(QueryStatistics statistics) {
     this.queryStatistics = statistics;
   }
 
-  /**
-   *
-   */
-  @Override
-  public boolean hasNext() {
-    if (!isNextConsumed) {
-      return true;
-    }
-
+  private void updateHasNext() {
     try {
-      boolean hasNext = resultSet.next();
-      if (hasNext) {
-        next = QueryFetcher.parseResultSet(resultSet, selectedColumns);
-      } else {
-        next = null;
-      }
-      isNextConsumed = false;
-      return hasNext;
+      this.hasNext = resultSet.next();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Record getNext() {
+    try {
+      return QueryFetcher.parseResultSet(resultSet, selectedColumns);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
   @Override
+  public boolean hasNext() {
+    return hasNext;
+  }
+
+  @Override
   public Record next() {
-    isNextConsumed = true;
-    return next;
+    if (!hasNext) {
+      throw new NoSuchElementException();
+    }
+    Record record = getNext();
+    updateHasNext();
+    return record;
   }
 
   @Override
