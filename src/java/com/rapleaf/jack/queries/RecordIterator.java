@@ -74,8 +74,12 @@ public class RecordIterator implements Iterator<Record>, AutoCloseable {
   @Override
   public void close() {
     try {
-      preparedStatement.close();
-      resultSet.close();
+      if (preparedStatement != null) {
+        preparedStatement.close();
+      }
+      if (resultSet != null) {
+        resultSet.close();
+      }
     } catch (SQLException e) {
       LOG.error("RecordIterator close operation failed", e);
     }

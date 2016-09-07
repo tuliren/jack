@@ -13,6 +13,7 @@ import com.rapleaf.jack.queries.Index;
 import com.rapleaf.jack.queries.IndexHints;
 import com.rapleaf.jack.queries.QueryOrder;
 import com.rapleaf.jack.queries.Record;
+import com.rapleaf.jack.queries.RecordIterator;
 import com.rapleaf.jack.queries.Records;
 import com.rapleaf.jack.test_project.DatabasesImpl;
 import com.rapleaf.jack.test_project.database_1.IDatabase1;
@@ -867,4 +868,19 @@ public class TestGenericQuery {
       // expected
     }
   }
+
+  @Test
+  public void testFetchIterator() throws Exception {
+    for (int i = 0; i < 10; ++i) {
+      User user = db.users().createDefaultInstance();
+      user.setSomeBinary(new byte[1024 * 1024 * 1]);
+      user.save();
+    }
+
+    RecordIterator iterator = db.createQuery().from(User.TBL).fetchIterator();
+    while (iterator.hasNext()) {
+      System.out.println(iterator.next());
+    }
+  }
+
 }
