@@ -25,6 +25,12 @@ public class TransactorImpl<DB extends IDb> implements ITransactor<DB> {
 
   private final IDbManager<DB> dbManager;
 
+  private final int queryLogSize = 10;
+
+  private TransactorMetricsImpl queryMetrics = new TransactorMetricsImpl(queryLogSize);
+
+  private boolean logMetricsWhenClosed = true;
+
   TransactorImpl(IDbManager<DB> dbManager) {
     this.dbManager = dbManager;
   }
@@ -65,14 +71,29 @@ public class TransactorImpl<DB extends IDb> implements ITransactor<DB> {
     execute(execution, true);
   }
 
+  TransactorMetrics getQueryMetrics() {
+    return queryMetrics;
+  }
+
+  DbMetrics getDbMetrics() {
+    return dbManager.getMetrics();
+  }
+
+  void setLogMetricsWhenClosed(boolean logMetricsWhenClosed) {
+    this.logMetricsWhenClosed = logMetricsWhenClosed;
+  }
+
   private <T> T query(IQuery<DB, T> query, boolean asTransaction) {
     DB connection = dbManager.getConnection();
     connection.setAutoCommit(!asTransaction);
     try {
+      long startTime = System.currentTimeMillis();
       T value = query.query(connection);
       if (asTransaction) {
         connection.commit();
       }
+      long executionTime = System.currentTimeMillis() - startTime;
+      queryMetrics.update(executionTime, Thread.currentThread().getStackTrace()[3]);
       return value;
     } catch (Exception e) {
       LOG.error("SQL execution failure", e);
@@ -90,10 +111,13 @@ public class TransactorImpl<DB extends IDb> implements ITransactor<DB> {
     DB connection = dbManager.getConnection();
     connection.setAutoCommit(!asTransaction);
     try {
+      long startTime = System.currentTimeMillis();
       execution.execute(connection);
       if (asTransaction) {
         connection.commit();
       }
+      long executionTime = System.currentTimeMillis() - startTime;
+      queryMetrics.update(executionTime, Thread.currentThread().getStackTrace()[3]);
     } catch (Exception e) {
       LOG.error("SQL execution failure", e);
       if (asTransaction) {
@@ -108,6 +132,10 @@ public class TransactorImpl<DB extends IDb> implements ITransactor<DB> {
 
   @Override
   public void close() {
+    if (logMetricsWhenClosed) {
+      LOG.info(dbManager.getMetrics().getSummary());
+      LOG.info("" + "\n" + (queryMetrics.getSummary()));
+    }
     dbManager.close();
   }
 
@@ -208,5 +236,4 @@ public class TransactorImpl<DB extends IDb> implements ITransactor<DB> {
       return new TransactorImpl<DB>(dbPoolManager);
     }
   }
-
 }
