@@ -218,7 +218,7 @@ public class GenericQuery extends AbstractExecution {
   }
 
   @Override
-  protected Collection<Object> getParameters() {
+  public Collection<Object> getParameters() {
     return parameters;
   }
 
