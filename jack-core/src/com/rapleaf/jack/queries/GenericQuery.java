@@ -207,7 +207,7 @@ public class GenericQuery extends AbstractExecution {
   }
 
   @Override
-  protected String getQueryStatement() {
+  public String getRawStatement() {
     return getSelectClause()
         + getFromClause()
         + getJoinClause()
