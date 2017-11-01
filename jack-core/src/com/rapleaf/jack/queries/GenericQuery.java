@@ -207,7 +207,7 @@ public class GenericQuery extends AbstractExecution {
   }
 
   @Override
-  protected String getQueryStatement() {
+  public String getQueryStatement() {
     return getSelectClause()
         + getFromClause()
         + getJoinClause()
@@ -218,7 +218,7 @@ public class GenericQuery extends AbstractExecution {
   }
 
   @Override
-  protected Collection<Object> getParameters() {
+  public Collection<Object> getParameters() {
     return parameters;
   }
 

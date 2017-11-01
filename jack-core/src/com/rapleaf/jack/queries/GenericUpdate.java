@@ -95,7 +95,7 @@ public class GenericUpdate extends AbstractExecution {
   }
 
   @Override
-  protected String getQueryStatement() {
+  public String getQueryStatement() {
     return getUpdateClause() +
         getSetClause() +
         getWhereClause();
