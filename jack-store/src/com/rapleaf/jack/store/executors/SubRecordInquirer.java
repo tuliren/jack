@@ -1,9 +1,16 @@
 package com.rapleaf.jack.store.executors;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -24,6 +31,9 @@ public class SubRecordInquirer extends BaseInquirerExecutor<JsRecords, Collectio
   private final List<GenericConstraint> scopeConstraints = Lists.newArrayList();
   private final Map<String, List<GenericConstraint>> recordConstraints = Maps.newHashMap();
   private final JsTable scope; // alias of table used specifically for scope query and self join
+  private Optional<Integer> limit = Optional.empty();
+  private Optional<Integer> offset = Optional.empty();
+  private Optional<Long> offsetSubRecordId = Optional.empty();
 
   SubRecordInquirer(JsTable table, Long executionRecordId) {
     super(table, executionRecordId);
@@ -48,6 +58,30 @@ public class SubRecordInquirer extends BaseInquirerExecutor<JsRecords, Collectio
     } else {
       this.recordConstraints.put(queryKey, Lists.newArrayList(constraint));
     }
+    return this;
+  }
+
+  @Beta
+  public SubRecordInquirer limit(int limit) {
+    this.limit = Optional.of(limit);
+    this.offset = Optional.empty();
+    this.offsetSubRecordId = Optional.empty();
+    return this;
+  }
+
+  @Beta
+  public SubRecordInquirer limit(int limit, int offset) {
+    this.limit = Optional.of(limit);
+    this.offset = Optional.of(offset);
+    this.offsetSubRecordId = Optional.empty();
+    return this;
+  }
+
+  @Beta
+  public SubRecordInquirer limit(int limit, long offsetSubRecordId) {
+    this.limit = Optional.of(limit);
+    this.offset = Optional.empty();
+    this.offsetSubRecordId = Optional.of(offsetSubRecordId);
     return this;
   }
 
@@ -85,6 +119,16 @@ public class SubRecordInquirer extends BaseInquirerExecutor<JsRecords, Collectio
 
     for (GenericConstraint constraint : scopeConstraints) {
       query.where(constraint);
+    }
+
+    if (limit.isPresent()) {
+      if (offset.isPresent()) {
+        query.limit(offset.get(), limit.get());
+      } else if (offsetSubRecordId.isPresent()) {
+        query.limit(limit.get()).where(scope.id.greaterThan(offsetSubRecordId.get()));
+      } else {
+        query.limit(limit.get());
+      }
     }
 
     return Sets.newHashSet(query.fetch().gets(scope.id));
@@ -130,7 +174,17 @@ public class SubRecordInquirer extends BaseInquirerExecutor<JsRecords, Collectio
       recordIds = Sets.newHashSet(query.fetch().gets(table.scope));
     }
 
-    return recordIds;
+    if (limit.isPresent()) {
+      if (offset.isPresent()) {
+        return recordIds.stream().sorted().skip(offset.get()).limit(limit.get()).collect(Collectors.toSet());
+      } else if (offsetSubRecordId.isPresent()) {
+        return recordIds.stream().sorted().filter(id -> id > offsetSubRecordId.get()).limit(limit.get()).collect(Collectors.toSet());
+      } else {
+        return recordIds.stream().sorted().limit(limit.get()).collect(Collectors.toSet());
+      }
+    } else {
+      return recordIds;
+    }
   }
 
   @Override
